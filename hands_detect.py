@@ -70,20 +70,25 @@ with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5) a
     cv2.destroyAllWindows()
 
 # Determine stage based on elapsed time
-stage = 0
-if elapsed_time < 4:
-    stage = 1
-elif elapsed_time < 8:
-    stage = 2
-elif elapsed_time < 15:
-    stage = 3
-elif elapsed_time < 20:
-    stage = 4
-elif elapsed_time < 20:
-    stage = 5
-elif elapsed_time < 30:
-    stage = 6
-else:
-    stage = 7
+#stage = 0
+#if elapsed_time < 4:
+#    stage = 1
+#elif elapsed_time < 8:
+#    stage = 2
+#elif elapsed_time < 15:
+#    stage = 3
+#elif elapsed_time < 20:
+#    stage = 4
+#elif elapsed_time < 20:
+#    stage = 5
+#elif elapsed_time < 30:
+#    stage = 6
+#else:
+#    stage = 7
 
-print(f"Final Stage: {stage}")
+stage_scale = (elapsed_time / 30) * 100 #30 being threshold to be rated stage 7 -> turn into scale from 0-100
+if stage_scale > 100: 
+    stage_scale = 100 #cap max at 100
+
+
+print(f"Final Stage: {stage_scale}")
