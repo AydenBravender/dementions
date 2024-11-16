@@ -23,7 +23,7 @@ AudioSegment.ffprobe = r"C:\ffmpeg\bin\ffprobe.exe"
 vosk_model_path = r"C:\Vosk models\vosk-model-small-en-us-0.15"
 
 #API Key Config
-API_KEY = "AIzaSyAG58lnAZeH68lavqYJ0g3sfV6gI4kvIkg"
+API_KEY = ""
 genai.configure(api_key=API_KEY)
 #google ai model config
 model = genai.GenerativeModel("gemini-1.5-flash")
