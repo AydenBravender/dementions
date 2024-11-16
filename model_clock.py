@@ -32,6 +32,7 @@ if __name__ == "__main__":
 
     try:
         predicted_class, confidence = classify_image(test_image_path)
+        predicted_class = (100/7) * predicted_class
         print(f"Predicted Class: {predicted_class}")
         print(f"Confidence: {confidence:.2f}")
     except FileNotFoundError:
