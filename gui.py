@@ -37,17 +37,17 @@ def clear_window():
     new_frame = ctk.CTkFrame(app)
     new_frame.grid(row=0, column=0, sticky="nsew")
 
-    button1 = ctk.CTkButton(new_frame, text="Homepage", command=button1_action, width=200)
-    button1.pack(pady=10)
-    button2 = ctk.CTkButton(new_frame, text="Begin Tests", command=button2_action, width=200)
-    button2.pack(pady=10)
+    # button1 = ctk.CTkButton(new_frame, text="Homepage", command=button1_action, width=200)
+    # button1.pack(pady=10)
+    # button2 = ctk.CTkButton(new_frame, text="Begin Tests", command=button2_action, width=200)
+    # button2.pack(pady=10)
 
-def button1_action():
-    for widget in app.winfo_children():
-        widget.destroy()
+# def button1_action():
+#     for widget in app.winfo_children():
+#         widget.destroy()
 
-def button2_action():
-    # Destroy all widgets from the window
+# def button2_action():
+#     # Destroy all widgets from the window
     for widget in app.winfo_children():
         widget.destroy()
 
@@ -248,12 +248,42 @@ def start_camera(mp_drawing, mp_hands):
     stage = stage*16
 
     print(f"Final Stage: {stage}")
-#     pass_to_admin()
+    pass_to_admin()
 
-# def pass_to_admin():
+# Submit button
+def check_password():
+    password = password_entry.get()
+    if password == "caretaker123":  # Replace with actual logic
+        messagebox.showinfo("Access Granted", "Welcome, Caretaker!")
+    else:
+        messagebox.showerror("Access Denied", "Incorrect Password. Please try again.")
+        
+def pass_to_admin():
+    # Clear all widgets from the app
+    for widget in app.winfo_children():
+        widget.destroy()
 
+    # Create a canvas for text display
+    canvas = ctk.CTkCanvas(app, bg="white", width=400, height=300)
+    canvas.pack(pady=20)
+
+    # Add "Pass to Caretaker" text
+    canvas.create_text(
+        200, 50,  # Centered position on canvas
+        text="Pass to Caretaker",
+        font=("Arial", 20, "bold"),
+        fill="black"
+    )
+
+    # Create password input field
+    password_entry = ctk.CTkEntry(app, placeholder_text="Enter Password", show="*")
+    password_entry.pack(pady=10)
 
     
+    password_submit_button = ctk.CTkButton(app, text="Submit", command=check_password)
+    password_submit_button.pack(pady=10)
+
+
 # Sign-in logic
 def sign_in():
     name = username_entry.get()

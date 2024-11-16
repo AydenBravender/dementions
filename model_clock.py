@@ -36,7 +36,6 @@ class ImageClassifier:
 
         return predicted_class, confidence
 
-<<<<<<< HEAD
 # # Example usage
 # if __name__ == "__main__":
 #     # Initialize the classifier with model path and class names
@@ -51,12 +50,3 @@ class ImageClassifier:
 #         print(f"Confidence: {confidence:.2f}")
 #     except FileNotFoundError:
 #         print("Image file not found. Please provide a valid file path.")
-=======
-    try:
-        predicted_class, confidence = classify_image(test_image_path)
-        predicted_class = (100.0/7) *  predicted_class
-        print(f"Predicted Class: {predicted_class}")
-        print(f"Confidence: {confidence:.2f}")
-    except FileNotFoundError:
-        print("Image file not found. Please provide a valid file path.")
->>>>>>> 4836248695db8d2a2f1fcd813bf017b1ef30ab89
