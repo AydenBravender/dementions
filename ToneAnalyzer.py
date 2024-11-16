@@ -16,7 +16,7 @@ class ToneAnalyzer:
         return sentiment_scores
     
     
-    def transcribe_audio(file_path, model_path="vosk-model-small-en-us-0.15"):
+    def transcribe_audio(file_path, model_path="/home/ayden/Desktop/aydenprj/nathacks/models/vosk-model-small-en-us-0.15"):
         # Load the Vosk model
         model = Model(model_path)
         

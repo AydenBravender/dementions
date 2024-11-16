@@ -1,7 +1,7 @@
 from ToneAnalyzer import ToneAnalyzer
 
 
-input_file_path = "Andrew.m4a"  # Replace with your .m4a or .wav file
+input_file_path = "/home/ayden/Desktop/aydenprj/nathacks/models/Test.m4a"  # Replace with your .m4a or .wav file
 converted_audio_path = ToneAnalyzer.convert_to_mono(input_file_path)
 sentence = ToneAnalyzer.transcribe_audio(converted_audio_path)
 print("Transcription:", sentence)
