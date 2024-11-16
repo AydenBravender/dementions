@@ -37,17 +37,6 @@ def clear_window():
     new_frame = ctk.CTkFrame(app)
     new_frame.grid(row=0, column=0, sticky="nsew")
 
-    # button1 = ctk.CTkButton(new_frame, text="Homepage", command=button1_action, width=200)
-    # button1.pack(pady=10)
-    # button2 = ctk.CTkButton(new_frame, text="Begin Tests", command=button2_action, width=200)
-    # button2.pack(pady=10)
-
-# def button1_action():
-#     for widget in app.winfo_children():
-#         widget.destroy()
-
-# def button2_action():
-#     # Destroy all widgets from the window
     for widget in app.winfo_children():
         widget.destroy()
 
