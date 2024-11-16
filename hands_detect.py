@@ -86,4 +86,9 @@ elif elapsed_time < 30:
 else:
     stage = 7
 
+stage_scale = (elapsed_time / 30) * 100 #30 being threshold to be rated stage 7 -> turn into scale from 0-100
+if stage_scale > 100: 
+    stage_scale = 100 #cap max at 100
+
+
 print(f"Final Stage: {stage}")
