@@ -12,6 +12,7 @@ import time
 from PIL import Image, ImageTk
 
 
+time_start_end = []
 # Initialize the main app window
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -52,7 +53,7 @@ class DrawingApp(ctk.CTkFrame):
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_text(
             200, 20,  # x, y coordinates for the text position
-            text="Start Drawing Below",
+            text="Please Draw a Clock",
             font=("Arial", 16, "bold"),
             fill="black"
         )
@@ -239,13 +240,86 @@ def start_camera(mp_drawing, mp_hands):
     print(f"Final Stage: {stage}")
     pass_to_admin()
 
-# Submit button
-def check_password():
+def check_password(password_entry):
     password = password_entry.get()
-    if password == "caretaker123":  # Replace with actual logic
-        messagebox.showinfo("Access Granted", "Welcome, Caretaker!")
+    if password == "1234":
+        admin_form()
     else:
         messagebox.showerror("Access Denied", "Incorrect Password. Please try again.")
+
+
+import customtkinter as ctk
+
+def admin_form():
+    """Displays a compact form with 10 questions for the caretaker to answer."""
+    # Clear all widgets from the app
+    for widget in app.winfo_children():
+        widget.destroy()
+
+    # Create a frame for the questions
+    form_frame = ctk.CTkFrame(app)
+    form_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+    # List of 10 questions where 10 represents a negative outcome
+    questions = [
+        "How frequently does the patient lose focus?",
+        "How frequently does the patient forget recent events?",
+        "How frequently does the patient require assistance?",
+        "How frequently does the patient poorly manage daily tasks?",
+        "How frequently is the patient in a bad mood?",
+        "How physically inactive is the patient?",
+        "How often does the patient struggle to communicate?",
+        "How often does the patient experience poor sleep quality?",
+        "How often does the patient struggle to follow instructions?",
+        "How frequently does the patient express confusion?"
+    ]
+
+    # Store responses
+    responses = []
+
+    # Create labels and sliders for each question
+    for i, question in enumerate(questions, start=1):
+        # Question Label
+        question_label = ctk.CTkLabel(
+            form_frame, text=f"{i}. {question}", font=("Arial", 12, "bold"), anchor="w"
+        )
+        question_label.pack(fill="x", pady=(3, 2))
+
+        # Frame for slider and its side labels
+        slider_frame = ctk.CTkFrame(form_frame, height=40)
+        slider_frame.pack(fill="x", pady=1)
+
+        # Left side label for positive
+        left_label = ctk.CTkLabel(slider_frame, text="1 - Rarely", font=("Arial", 8))
+        left_label.grid(row=0, column=0, padx=3, sticky="w")
+
+        # Slider for response
+        slider = ctk.CTkSlider(slider_frame, from_=1, to=10, number_of_steps=9, height=8)
+        slider.set(5)  # Default value
+        slider.grid(row=0, column=1, padx=8, sticky="ew")
+
+        # Add small tick mark for the middle
+        tick_label = ctk.CTkLabel(slider_frame, text="5", font=("Arial", 6))
+        tick_label.grid(row=1, column=1, sticky="n")
+        slider_frame.grid_columnconfigure(1, weight=1)
+
+        # Right side label for negative
+        right_label = ctk.CTkLabel(slider_frame, text="10 - Frequently", font=("Arial", 8))
+        right_label.grid(row=0, column=2, padx=3, sticky="e")
+
+        responses.append(slider)
+
+
+
+    # Submit button
+    def submit_form():
+        results = [slider.get() for slider in responses]
+        messagebox.showinfo("Form Submitted", f"Thank you! Responses: {results}")
+        pass_to_admin()
+
+    submit_button = ctk.CTkButton(app, text="Submit", command=submit_form)
+    submit_button.pack(pady=20)
+
         
 def pass_to_admin():
     # Clear all widgets from the app
@@ -268,12 +342,14 @@ def pass_to_admin():
     password_entry = ctk.CTkEntry(app, placeholder_text="Enter Password", show="*")
     password_entry.pack(pady=10)
 
-    
-    password_submit_button = ctk.CTkButton(app, text="Submit", command=check_password)
+    # Submit button with lambda to pass password_entry
+    password_submit_button = ctk.CTkButton(
+        app, 
+        text="Submit", 
+        command=lambda: check_password(password_entry)
+    )
     password_submit_button.pack(pady=10)
 
-
-# Sign-in logic
 def sign_in():
     name = username_entry.get()
     if name.strip():  # Check if the name is non-empty
