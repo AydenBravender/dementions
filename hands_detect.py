@@ -2,7 +2,6 @@ import cv2
 import math
 import mediapipe as mp
 import time
-import numpy as np
 
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
@@ -10,18 +9,30 @@ mp_hands = mp.solutions.hands
 # Initialize video capture
 cap = cv2.VideoCapture(0)
 
+# Set the timeout duration (in seconds)
+timeout_duration = 40
+
 # Initialize Mediapipe hands
 with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5) as hands:
     last_processing_time = time.time()
     processing_interval = 0.3  # Process a frame every 0.3 seconds
     start_time = time.time()  # Variable to store the time when fingers first touch
+    elapsed_time = 0  # Track elapsed time
+    end = False  # Track if fingers touched
 
     while True:
         success, image = cap.read()
         if not success:
             continue
-        
+
         current_time = time.time()
+        elapsed_time = current_time - start_time  # Update elapsed time
+
+        # Exit if timeout is reached
+        if elapsed_time >= timeout_duration:
+            print("Timeout reached! Exiting...")
+            break
+
         if current_time - last_processing_time >= processing_interval:
             last_processing_time = current_time
 
@@ -40,26 +51,39 @@ with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5) a
                     middle_tip_coords = (middle_tip.x * image.shape[1], middle_tip.y * image.shape[0])
 
                     # Calculate the distance between thumb tip and middle finger tip
-                    distance_thumb_middle = math.sqrt((thumb_tip_coords[0] - middle_tip_coords[0])**2 + 
+                    distance_thumb_middle = math.sqrt((thumb_tip_coords[0] - middle_tip_coords[0])**2 +
                                                       (thumb_tip_coords[1] - middle_tip_coords[1])**2)
 
                     # Define a threshold for when the fingers touch (distance <= 15 pixels)
                     if distance_thumb_middle < 15:
-                        elapsed_time = time.time() - start_time
                         print(f"Fingers touched! Elapsed time: {elapsed_time:.2f} seconds")
-                        
-                        # Stop the camera feed and show a black frame
-                        black_frame = np.zeros_like(image)  # Create a black frame of the same size as the input image
-                        cv2.imshow('MediaPipe Hands', black_frame)  # Display black frame
-                        cap.release()
-                        cv2.destroyAllWindows()
-                        break  # Stop the program
+                        end = True
 
-            # Only show the camera feed if no hand is detected or fingers are not touching
-            cv2.imshow('MediaPipe Hands', image)
+            # Show the camera feed only if fingers haven't touched
+            if not end:
+                cv2.imshow('MediaPipe Hands', image)
 
-        if cv2.waitKey(1) & 0xFF == 27:  # Press 'Esc' to quit
+        if cv2.waitKey(1) & 0xFF == 27 or end:  # Exit on 'Esc' or fingers touching
             break
 
     cap.release()
     cv2.destroyAllWindows()
+
+# Determine stage based on elapsed time
+stage = 0
+if elapsed_time < 4:
+    stage = 1
+elif elapsed_time < 8:
+    stage = 2
+elif elapsed_time < 15:
+    stage = 3
+elif elapsed_time < 20:
+    stage = 4
+elif elapsed_time < 20:
+    stage = 5
+elif elapsed_time < 30:
+    stage = 6
+else:
+    stage = 7
+
+print(f"Final Stage: {stage}")
