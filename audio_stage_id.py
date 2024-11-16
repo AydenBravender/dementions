@@ -9,6 +9,5 @@ tone_analyzer = ToneAnalyzer(sentence)
 sentiment_scores = tone_analyzer.analyze_tone()
 stage = sentiment_scores['neg']
 print(stage)
-stage = (stage*3)+1
-
+stage = stage*100
 print(stage)
