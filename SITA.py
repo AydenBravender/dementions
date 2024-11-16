@@ -40,9 +40,9 @@ class Sita:
         return sentiment_scores
     
     def gemeni_prompt(text):
-        prompt = "\n Does the text above suggest that the speaker has dementia? Please respond with only Y or N, Y being yes the speaker has dementia and N being no the speaker does not have dementia"
+        prompt = "\n Does the text above suggest that the speaker has dementia, on a scale of 0-100? Please respond with only an integer, 0 being no dementia at all, and 100 being severe dementia"
         response = model.generate_content(text + prompt)
-        output = response.text[0]
+        output = int(response.text.split()[0])
         return output
     
     def whisper_transcribe(file_path):
@@ -135,3 +135,12 @@ class Sita:
         audio.export(output_file, format="wav")
         print(f"Converted audio saved as {output_file} with sample rate {target_rate} Hz and mono channel.")
         return output_file
+    
+    #tone should be result of class.analyze_tone()
+    def score_calc(wps, gemini, tone):
+        wps = (wps/1.9) * 100
+        if wps > 100:
+            wps = 100
+        stage = tone['neg']*100
+        speech_cohesiveness = (gemini * 0.7) + (wps ( 0.3))
+        return speech_cohesiveness, stage
