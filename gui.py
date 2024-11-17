@@ -10,6 +10,14 @@ import math
 import mediapipe as mp
 import time
 from PIL import Image, ImageTk
+import pygame
+import customtkinter as ctk
+from pygame.locals import *
+from pydub import AudioSegment
+import sounddevice as sd
+import numpy as np
+import time
+import os
 
 
 time_start_end = []
@@ -57,7 +65,7 @@ class DrawingApp(ctk.CTkFrame):
             font=("Arial", 16, "bold"),
             fill="black"
         )
-        
+
         # Variables for drawing state
         self.last_x, self.last_y = None, None
 
@@ -69,6 +77,23 @@ class DrawingApp(ctk.CTkFrame):
         self.submit_button = ctk.CTkButton(self, text="Submit", command=self.submit_drawing, width=200)
         self.submit_button.pack(pady=10)
 
+        # Play audio after the canvas is ready
+        self.after(100, self.play_audio)  # Delay to ensure UI is loaded
+
+    def play_audio(self):
+        audio = AudioSegment.from_file('/home/ayden/Desktop/aydenprj/nathacks/dementions/Voice 001.m4a')
+        data = np.array(audio.get_array_of_samples())
+
+        # Ensure correct shape for stereo or mono
+        if audio.channels == 2:
+            data = data.reshape((-1, 2))
+
+        # Play the audio
+        sd.play(data, samplerate=audio.frame_rate)
+
+        # Wait for the audio to finish
+        sd.wait()
+
     def on_button_press(self, event):
         # Store the current mouse position
         self.last_x, self.last_y = event.x, event.y
@@ -78,6 +103,7 @@ class DrawingApp(ctk.CTkFrame):
         if self.last_x and self.last_y:
             self.canvas.create_line(self.last_x, self.last_y, event.x, event.y, width=2, fill="black", capstyle="round", smooth=True)
         self.last_x, self.last_y = event.x, event.y
+
 
     def submit_drawing(self):
         # In this example, we will simply show a message box confirming the drawing
@@ -144,6 +170,15 @@ def hands_test():
     text="Please copy the hand position above",
     font=("Arial", 16, "bold"),
     fill="white")
+    # Play audio before starting
+    audio = AudioSegment.from_file('/home/ayden/Desktop/aydenprj/nathacks/dementions/Voice 002.m4a')
+    data = np.array(audio.get_array_of_samples())
+
+    if audio.channels == 2:
+        data = data.reshape((-1, 2))
+
+    sd.play(data, samplerate=audio.frame_rate)
+    sd.wait()  # Wait for the audio to finish
 
     # Start camera processing after a delay
     app.after(1000, start_camera, mp_drawing, mp_hands)  # Delay of 1 second
@@ -238,7 +273,151 @@ def start_camera(mp_drawing, mp_hands):
     stage = stage*16
 
     print(f"Final Stage: {stage}")
-    pass_to_admin()
+    pygame_maze()
+    
+def pygame_maze():
+    """Launches the Pygame Maze game."""
+    for widget in app.winfo_children():
+        widget.destroy()
+
+    # Play audio before starting
+    audio = AudioSegment.from_file('/home/ayden/Desktop/aydenprj/nathacks/dementions/Voice 003.m4a')
+    data = np.array(audio.get_array_of_samples())
+
+    if audio.channels == 2:
+        data = data.reshape((-1, 2))
+
+    sd.play(data, samplerate=audio.frame_rate)
+    sd.wait()  # Wait for the audio to finish
+
+    # Initialize pygame
+    pygame.init()
+
+    WIDTH, HEIGHT = 800, 600
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Maze with Timer")
+
+    # Colors
+    WHITE = (255, 255, 255)
+    BLACK = (0, 0, 0)
+    BLUE = (0, 0, 255)
+    GREEN = (0, 255, 0)
+    RED = (255, 0, 0)
+
+    # Maze layout
+    MAZE = [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+        [1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1],
+        [1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
+        [1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1],
+        [0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ]
+
+    TILE_SIZE = WIDTH // len(MAZE[0])
+
+    character = pygame.Rect(TILE_SIZE + 5, TILE_SIZE + 5, TILE_SIZE // 2, TILE_SIZE // 2)
+    FINISH_POS = (TILE_SIZE * 14 + TILE_SIZE // 2, TILE_SIZE * 10 + TILE_SIZE // 2)
+    finish_rect = pygame.Rect(FINISH_POS[0] - TILE_SIZE // 2, FINISH_POS[1] - TILE_SIZE // 2, TILE_SIZE, TILE_SIZE)
+
+    start_time = time.time()
+    time_limit = 200  # 5 minutes time limit
+
+    def draw_maze():
+        """Draw the maze and the start/finish points."""
+        for row in range(len(MAZE)):
+            for col in range(len(MAZE[0])):
+                color = BLACK if MAZE[row][col] == 1 else WHITE
+                pygame.draw.rect(screen, color, (col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+
+        pygame.draw.rect(screen, GREEN, (TILE_SIZE, TILE_SIZE, TILE_SIZE, TILE_SIZE))  # Start
+        pygame.draw.rect(screen, RED, finish_rect)  # Finish
+
+    def follow_cursor():
+        """Move character towards cursor while preventing wall collision."""
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        dx, dy = mouse_x - character.centerx, mouse_y - character.centery
+        distance = (dx**2 + dy**2) ** 0.5
+        if distance > 0:
+            dx, dy = dx / distance * 5, dy / distance * 5
+
+        new_rect = character.move(dx, dy)
+        for row in range(len(MAZE)):
+            for col in range(len(MAZE[0])):
+                if MAZE[row][col] == 1 and new_rect.colliderect(pygame.Rect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE)):
+                    return  # Collision, stop movement
+
+        character.move_ip(dx, dy)
+
+    clock = pygame.time.Clock()
+    running = True
+
+    while running:
+        screen.fill(WHITE)
+        draw_maze()
+        pygame.draw.ellipse(screen, BLUE, character)
+
+        follow_cursor()
+
+        elapsed_time = time.time() - start_time
+        if character.colliderect(finish_rect):
+            pygame.time.wait(2000)  # Show completion
+            break
+        elif elapsed_time > time_limit:
+            print("Time's up!")
+            pygame.time.wait(2000)
+            elapsed_time = 200
+            break
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    pygame.quit()
+    elasped_time = elapsed_time/2
+    print(elapsed_time)
+    eeg()
+
+def eeg():
+    """Displays a message and plays audio for the EEG task."""
+    
+    # Clear existing widgets
+    for widget in app.winfo_children():
+        widget.destroy()
+
+    # Create a frame for the EEG task
+    frame = ctk.CTkFrame(app)
+    frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # Display instructions
+    label = ctk.CTkLabel(
+        frame, 
+        text="Please close your eyes and relax", 
+        font=("Arial", 16, "bold"),
+        text_color="white"
+    )
+    label.pack(pady=10, side="bottom")  # Positioned at the bottom
+
+    # Play audio instructions
+    audio = AudioSegment.from_file('/home/ayden/Desktop/aydenprj/nathacks/dementions/Voice 004.m4a')
+    data = np.array(audio.get_array_of_samples())
+
+    if audio.channels == 2:
+        data = data.reshape((-1, 2))
+
+    sd.play(data, samplerate=audio.frame_rate)
+    sd.wait()  # Wait for the audio to finish
+
+
 
 def check_password(password_entry):
     password = password_entry.get()
