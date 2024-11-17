@@ -24,6 +24,21 @@ import numpy as np
 import os
 import time
 from SITA import Sita
+import threading
+import random
+
+predicted_class = 0
+stage = 0
+results_fit = 0
+speech_score = 0
+emotion_score = 0
+elapsed_time = 0
+# global predicted_class
+# global stage
+# global results_fit
+# global speech_score
+# global emotion_score
+# global elapsed_time
 
 
 time_start_end = []
@@ -114,7 +129,7 @@ def questions():
         print(f"Saved {filename} at {filepath}")
 
     # Function to play a question and record the response
-    def play_and_record(question_file, output_file, duration=7, question_label=None):
+    def play_and_record(question_file, output_file, duration=1, question_label=None):
         try:
             print(f"Playing {question_file}...")
             audio = AudioSegment.from_file(question_file)
@@ -141,6 +156,7 @@ def questions():
 
     # Function to merge WAV files and run SITA analysis
     def merge_and_analyze():
+        global speech_score, emotion_score  # Declare global for updating
         try:
             print("Starting audio merge...")
             input_files = [
@@ -288,6 +304,7 @@ class DrawingApp(ctk.CTkFrame):
 
 
     def submit_drawing(self):
+        global predicted_class  # Update global predicted_class
         # In this example, we will simply show a message box confirming the drawing
         messagebox.showinfo("Drawing Submitted", "Your drawing has been submitted successfully!")
         
@@ -369,6 +386,7 @@ def hands_test():
 
 
 def start_camera(mp_drawing, mp_hands):
+    global stage, elapsed_time 
     mp_drawing = mp.solutions.drawing_utils
     mp_hands = mp.solutions.hands
 
@@ -568,41 +586,33 @@ def pygame_maze():
     elasped_time = elapsed_time/2
     print(elapsed_time)
     eeg()
+    # time.sleep(10)
+    # pass_to_admin()
+
 
 def eeg():
     """Displays a message, plays audio, and shows a calming GIF for the EEG task."""
-
     # Clear existing widgets
     for widget in app.winfo_children():
         widget.destroy()
 
-    # Create a frame for the EEG task
-    frame = ctk.CTkFrame(app)
-    frame.pack(fill="both", expand=True, padx=20, pady=20)
-
-    # Display instructions
-    label = ctk.CTkLabel(
-        frame, 
-        text="Please close your eyes and relax", 
-        font=("Arial", 16, "bold"),
-        text_color="white"
-    )
-    label.pack(pady=10, side="bottom")  # Positioned at the bottom
-
-    # Play audio instructions
     audio = AudioSegment.from_file('/home/ayden/Desktop/aydenprj/nathacks/dementions/Voice 004.m4a')
     data = np.array(audio.get_array_of_samples())
 
     if audio.channels == 2:
         data = data.reshape((-1, 2))
 
-    def play_audio():
-        sd.play(data, samplerate=audio.frame_rate)
-        sd.wait()  # Wait for the audio to finish
+    sd.play(data, samplerate=audio.frame_rate)
+    sd.wait()  # Wait for the audio to finish
 
-    def display_gif():
-        """Displays a calming GIF for 20 seconds after 5 seconds delay."""
-        gif_path = '/path/to/calming.gif'  # Update with your GIF path
+    gif_path = "dementions/Screen-Recording-ezgif.com-video-to-gif-converter.gif"
+    parent_frame = ctk.CTkFrame(app)
+    parent_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+    try:
+        if not os.path.exists(gif_path):
+            raise FileNotFoundError(f"GIF file not found: {gif_path}")
+
         img = Image.open(gif_path)
         frames = []
 
@@ -613,32 +623,36 @@ def eeg():
         except EOFError:
             pass
 
-        gif_label = ctk.CTkLabel(frame, text="")
+        if not frames:
+            raise ValueError("No frames loaded from GIF.")
+
+        gif_label = ctk.CTkLabel(parent_frame, text="")
         gif_label.pack(pady=20)
 
         def animate(index):
+            if not parent_frame.winfo_exists():
+                return  # Stop animation if frame is destroyed
+
             gif_label.configure(image=frames[index])
-            app.update_idletasks()
-            if index + 1 < len(frames):
-                app.after(100, animate, index + 1)  # Adjust speed as needed
-            else:
-                app.after(20000, hide_gif)  # Hide GIF after 20 seconds
+            parent_frame.update_idletasks()
+            next_index = (index + 1) % len(frames)
+            parent_frame.after(100, animate, next_index)
 
-        def hide_gif():
+        def stop_animation():
             gif_label.pack_forget()
-            generate_random_number()
+            proceed_to_next_task()  # Call the next task here
 
-        app.after(5000, animate, 0)  # Start animation after 5 seconds
+        def proceed_to_next_task():
+            pass_to_admin()
+        animate(0)  # Start the animation immediately
+        parent_frame.after(20000, stop_animation)  # Stop after 20 seconds
 
-    def generate_random_number():
-        """Generates and prints a random number between 1 and 100."""
-        rand_num = random.randint(1, 100)
-        print(f"Generated Random Number: {rand_num}")
+    except Exception as e:
+        print(f"Error displaying GIF: {e}")
 
-    # Start tasks
-    threading.Thread(target=play_audio, daemon=True).start()
-    threading.Thread(target=display_gif, daemon=True).start()
 
+    
+ 
 
 
 def check_password(password_entry):
@@ -648,8 +662,6 @@ def check_password(password_entry):
     else:
         messagebox.showerror("Access Denied", "Incorrect Password. Please try again.")
 
-
-import customtkinter as ctk
 
 def admin_form():
     """Displays a compact form with 10 questions for the caretaker to answer."""
@@ -714,9 +726,12 @@ def admin_form():
 
     # Submit button
     def submit_form():
+        global results_fit
         results = [slider.get() for slider in responses]
-        messagebox.showinfo("Form Submitted", f"Thank you! Responses: {results}")
-        pass_to_admin()
+        print(results)
+        results_fit = sum(results)
+        print(sum(results))
+        results_display()
 
     submit_button = ctk.CTkButton(app, text="Submit", command=submit_form)
     submit_button.pack(pady=20)
@@ -751,11 +766,56 @@ def pass_to_admin():
     )
     password_submit_button.pack(pady=10)
 
+def results_display():
+    """Displays the calculated results for physical, behavior, speech, emotion, and memory on the app."""
+    print(predicted_class, stage, results_fit, speech_score, emotion_score, elapsed_time)
+    
+    for widget in app.winfo_children():
+        widget.destroy()
+    
+    # Calculate metrics
+    physical = (predicted_class + stage) / 2
+    behavior = results_fit
+    speech = speech_score
+    emotion = emotion_score
+    memory = elapsed_time
+    
+    # Create a frame for the results
+    results_frame = ctk.CTkFrame(app)
+    results_frame.pack(fill="both", expand=True, padx=20, pady=20)
+    
+    # Title Label
+    title_label = ctk.CTkLabel(results_frame, text="Results Summary", font=("Arial", 18, "bold"))
+    title_label.pack(pady=10)
+
+    # Display each result
+    result_labels = [
+        f"Physical: {physical:.2f}",
+        f"Behavior: {behavior}",
+        f"Speech: {speech}",
+        f"Emotion: {emotion}",
+        f"Memory: {memory}"
+    ]
+
+    for result in result_labels:
+        label = ctk.CTkLabel(results_frame, text=result, font=("Arial", 14))
+        label.pack(pady=5)
+    
+    # Next Step Button
+    next_button = ctk.CTkButton(results_frame, text="Next Task", command=next_task)
+    next_button.pack(pady=20)
+
+def next_task():
+    """Placeholder function for the next task."""
+    print("Proceeding to the next task...")
+
+
+
+
 def sign_in():
     name = username_entry.get()
     if name.strip():  # Check if the name is non-empty
         clear_window()  # Clear everything
-        messagebox.showinfo("Success", f"Welcome, {name}!")
     else:
         messagebox.showerror("Error", "Please enter your name")
 
