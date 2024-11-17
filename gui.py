@@ -18,6 +18,12 @@ import sounddevice as sd
 import numpy as np
 import time
 import os
+import sounddevice as sd
+import wave
+import numpy as np
+import os
+import time
+from SITA import Sita
 
 
 time_start_end = []
@@ -49,9 +55,179 @@ def clear_window():
     for widget in app.winfo_children():
         widget.destroy()
 
+    try:
+        questions()  # Ensure this is called
+    except Exception as e:
+        print(f"Error in questions(): {e}")
+
+    for widget in app.winfo_children():
+        widget.destroy()
     # Create new widgets for drawing interface
     drawing_app = DrawingApp(app)
     drawing_app.pack(fill="both", expand=True)
+
+def questions():
+    from pydub import AudioSegment
+    from pydub.utils import which
+    import customtkinter as ctk
+
+    AudioSegment.converter = which("ffmpeg")  # Explicitly set ffmpeg path
+    print("Starting questions function...")  # Trace start of function
+
+    # Folder to store recordings
+    response_dir_name = "ResponseAudios"
+
+    # Function to check and create the directory
+    def check_dir(folder_name):
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+        print(f"Directory '{folder_name}' checked/created successfully.")
+        return folder_name
+
+    # Function to record audio
+    def record_audio(duration, samplerate=44100):
+        print(f"Recording for {duration} seconds...")
+        audio_data = []
+
+        def callback(indata, frames, time, status):
+            if status:
+                print(f"Status: {status}")
+            audio_data.append(indata.copy())
+
+        with sd.InputStream(callback=callback, channels=1, samplerate=samplerate, dtype='float32'):
+            sd.sleep(duration * 1000)  # Duration in milliseconds
+
+        print("Recording stopped.")
+        return np.concatenate(audio_data, axis=0)
+
+    # Function to save audio
+    def save_audio(audio_data, filename, samplerate=44100):
+        filepath = os.path.join(response_dir_name, filename)
+
+        # Normalize audio data to prevent clipping
+        audio_array = np.int16(audio_data / np.max(np.abs(audio_data)) * 32767)
+        with wave.open(filepath, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(samplerate)
+            wf.writeframes(audio_array.tobytes())
+        print(f"Saved {filename} at {filepath}")
+
+    # Function to play a question and record the response
+    def play_and_record(question_file, output_file, duration=7, question_label=None):
+        try:
+            print(f"Playing {question_file}...")
+            audio = AudioSegment.from_file(question_file)
+            data = np.array(audio.get_array_of_samples())
+
+            if audio.channels == 2:
+                data = data.reshape((-1, 2))
+
+            sd.play(data, samplerate=audio.frame_rate)
+            sd.wait()  # Wait for the audio to finish
+            print(f"Finished playing {question_file}")
+
+            # Update status
+            if question_label:
+                question_label.configure(text="Recording your response...")
+
+            audio_data = record_audio(duration)
+            save_audio(audio_data, output_file)
+            print(f"Recorded response saved as {output_file}")
+        except FileNotFoundError as fnf_error:
+            print(f"File not found: {fnf_error}")
+        except Exception as e:
+            print(f"Error in play_and_record(): {e}")
+
+    # Function to merge WAV files and run SITA analysis
+    def merge_and_analyze():
+        try:
+            print("Starting audio merge...")
+            input_files = [
+                os.path.join(response_dir_name, f"output{i}.wav") for i in range(1, 6)
+            ]
+
+            for i, file in enumerate(input_files, start=1):
+                if not os.path.exists(file):
+                    raise FileNotFoundError(f"Expected audio file not found: {file}")
+                print(f"Found input file {i}: {file}")
+
+            output_file = os.path.join(response_dir_name, "MergedAudio.wav")
+            combined_audio = []
+            sample_rate = None
+
+            for file in input_files:
+                with wave.open(file, "rb") as wf:
+                    if sample_rate is None:
+                        sample_rate = wf.getframerate()
+                    frames = wf.readframes(wf.getnframes())
+                    audio_data = np.frombuffer(frames, dtype=np.int16)
+                    combined_audio.append(audio_data)
+
+            merged_audio = np.concatenate(combined_audio)
+
+            with wave.open(output_file, "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(sample_rate)
+                wf.writeframes(merged_audio.tobytes())
+
+            print(f"Merged audio saved as {output_file}")
+
+            print("Running SITA analysis...")
+            sita = Sita(output_file)
+            speech_score, emotion_score = sita.score_pair
+            outlier_sentences = sita.outlier_sentences
+
+            print(f"Speech Score: {speech_score}")
+            print(f"Emotion Score: {emotion_score}")
+            print(f"Outlier Sentences: {outlier_sentences}")
+        except FileNotFoundError as fnf_error:
+            print(f"Merge file error: {fnf_error}")
+        except Exception as e:
+            print(f"Error in merge_and_analyze(): {e}")
+
+    # Messages to display for each question
+    question_messages = [
+        "What was your favourite childhood memory?",
+        "Do you have any children?",
+        "Where were you born?",
+        "What is your favorite food?",
+        "What is your favorite hobby?"
+    ]
+
+    try:
+        check_dir(response_dir_name)
+
+        # Create a frame for the questions and display area
+        question_frame = ctk.CTkFrame(app)
+        question_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Add a label to display the questions
+        question_label = ctk.CTkLabel(question_frame, text="", font=("Arial", 18))
+        question_label.pack(pady=20)
+
+        question_files = [
+            '/home/ayden/Desktop/aydenprj/nathacks/dementions/Q1.m4a',
+            '/home/ayden/Desktop/aydenprj/nathacks/dementions/Q2.m4a',
+            '/home/ayden/Desktop/aydenprj/nathacks/dementions/Q3.m4a',
+            '/home/ayden/Desktop/aydenprj/nathacks/dementions/Q4.m4a',
+            '/home/ayden/Desktop/aydenprj/nathacks/dementions/Q5.m4a'
+        ]
+
+        for i, (question_file, message) in enumerate(zip(question_files, question_messages), start=1):
+            print(f"Displaying message for question {i}: {message}")
+            question_label.configure(text=message)
+            app.update_idletasks()  # Ensure the UI updates before recording
+            play_and_record(question_file, f"output{i}.wav", question_label=question_label)
+
+        print("All questions completed. Now merging audio files...")
+        merge_and_analyze()
+        print("Merge and analysis complete.")
+    except Exception as e:
+        print(f"An error occurred in questions(): {e}")
+    finally:
+        print("Questions function execution finished.")
 
 
 class DrawingApp(ctk.CTkFrame):
@@ -81,6 +257,12 @@ class DrawingApp(ctk.CTkFrame):
         self.after(100, self.play_audio)  # Delay to ensure UI is loaded
 
     def play_audio(self):
+        from pydub import AudioSegment
+        from pydub.utils import which
+
+        AudioSegment.converter = which("ffmpeg")  # Explicitly set ffmpeg path
+
+
         audio = AudioSegment.from_file('/home/ayden/Desktop/aydenprj/nathacks/dementions/Voice 001.m4a')
         data = np.array(audio.get_array_of_samples())
 
@@ -388,8 +570,8 @@ def pygame_maze():
     eeg()
 
 def eeg():
-    """Displays a message and plays audio for the EEG task."""
-    
+    """Displays a message, plays audio, and shows a calming GIF for the EEG task."""
+
     # Clear existing widgets
     for widget in app.winfo_children():
         widget.destroy()
@@ -414,8 +596,48 @@ def eeg():
     if audio.channels == 2:
         data = data.reshape((-1, 2))
 
-    sd.play(data, samplerate=audio.frame_rate)
-    sd.wait()  # Wait for the audio to finish
+    def play_audio():
+        sd.play(data, samplerate=audio.frame_rate)
+        sd.wait()  # Wait for the audio to finish
+
+    def display_gif():
+        """Displays a calming GIF for 20 seconds after 5 seconds delay."""
+        gif_path = '/path/to/calming.gif'  # Update with your GIF path
+        img = Image.open(gif_path)
+        frames = []
+
+        try:
+            while True:
+                frames.append(ImageTk.PhotoImage(img.copy()))
+                img.seek(len(frames))  # Load next frame
+        except EOFError:
+            pass
+
+        gif_label = ctk.CTkLabel(frame, text="")
+        gif_label.pack(pady=20)
+
+        def animate(index):
+            gif_label.configure(image=frames[index])
+            app.update_idletasks()
+            if index + 1 < len(frames):
+                app.after(100, animate, index + 1)  # Adjust speed as needed
+            else:
+                app.after(20000, hide_gif)  # Hide GIF after 20 seconds
+
+        def hide_gif():
+            gif_label.pack_forget()
+            generate_random_number()
+
+        app.after(5000, animate, 0)  # Start animation after 5 seconds
+
+    def generate_random_number():
+        """Generates and prints a random number between 1 and 100."""
+        rand_num = random.randint(1, 100)
+        print(f"Generated Random Number: {rand_num}")
+
+    # Start tasks
+    threading.Thread(target=play_audio, daemon=True).start()
+    threading.Thread(target=display_gif, daemon=True).start()
 
 
 
