@@ -157,5 +157,3 @@ class Sita:
         speech_cohesiveness = (gemini * 0.7) + (wps * 0.3)
         return speech_cohesiveness, tone
     
-toneanal = Sita("ResponseAudios/MergedAudio.wav")
-print(toneanal.score_pair)
