@@ -23,23 +23,33 @@ AudioSegment.ffprobe = r"C:\ffmpeg\bin\ffprobe.exe"
 vosk_model_path = r"C:\Vosk models\vosk-model-small-en-us-0.15"
 
 #API Key Config
-API_KEY = ""
+API_KEY = "AIzaSyAG58lnAZeH68lavqYJ0g3sfV6gI4kvIkg"
 genai.configure(api_key=API_KEY)
 #google ai model config
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 class Sita:
-    def __init__(self, sentence):
-        self.sentence = sentence
+    def __init__(self, filepath):
+        self.audio = filepath
 
-    def analyze_tone(self):
+        converted_audio = self.convert_to_mono(filepath)
+        self.sentence = self.whisper_transcribe(converted_audio) #CAN REPLACE WITH VOSK TRANSCRIBE
+        self.gemini_score = self.gemini_prompt(self.sentence)
+        self.sentiment_scores = self.analyze_tone(self.sentence)
+        self.wps = self.find_wps(self.sentence) #not a score, score_calc function takes care of that, just sloppy coding on my end, and too lazy - Lucas
+        self.score_pair = self.score_calc(self.wps, self.gemini_score, self.sentiment_scores)
+        self.outlier_sentences = self.tokenization(self.sentence)
+
+
+    def analyze_tone(self, sentence):
         # Initialize VADER sentiment analyzer
         analyzer = SentimentIntensityAnalyzer()
         # Analyze sentiment of the stored sentence
-        sentiment_scores = analyzer.polarity_scores(self.sentence)
-        return sentiment_scores
+        sentiment_scores = analyzer.polarity_scores(sentence)
+        score = sentiment_scores['neg']*100
+        return score
     
-    def gemeni_prompt(text):
+    def gemini_prompt(text):
         prompt = "\n Does the text above suggest that the speaker has dementia, on a scale of 0-100? Please respond with only an integer, 0 being no dementia at all, and 100 being severe dementia"
         response = model.generate_content(text + prompt)
         output = int(response.text.split()[0])
@@ -84,7 +94,7 @@ class Sita:
         #return an array of irrelevant sentecnes
         return irrelevant_sentences
 
-    def transcribe_audio(file_path, model_path=vosk_model_path):
+    def vosk_transcribe(file_path, model_path=vosk_model_path):
         # Load the Vosk model
         model = Model(model_path)
         
@@ -127,7 +137,11 @@ class Sita:
         return wps
 
     def convert_to_mono(input_file, output_file="converted_mono_audio.wav", target_rate=16000):
-        # Load the audio file with pydub (supports m4a)
+        if not isinstance(input_file, str):
+            raise ValueError(f"Expected a file path (str), got {type(input_file)}")
+        if not os.path.exists(input_file):
+            raise FileNotFoundError(f"File not found: {input_file}")
+        #Load the audio file with pydub (supports m4a)
         audio = AudioSegment.from_file(input_file)
         # Convert to mono and set the sample rate
         audio = audio.set_channels(1).set_frame_rate(target_rate)
@@ -141,6 +155,6 @@ class Sita:
         wps = (wps/1.9) * 100
         if wps > 100:
             wps = 100
-        stage = tone['neg']*100
-        speech_cohesiveness = (gemini * 0.7) + (wps ( 0.3))
-        return speech_cohesiveness, stage
+        speech_cohesiveness = (gemini * 0.7) + (wps * 0.3)
+        return speech_cohesiveness, tone
+    
